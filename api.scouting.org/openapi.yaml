@@ -36,6 +36,8 @@ tags:
     description: Registration and recharter
   - name: lookups
     description: Lookup data and reference tables
+  - name: events
+    description: Events and communications
 paths:
   /advancements/ranks:
     get:
@@ -285,6 +287,82 @@ paths:
                 $ref: "#/components/schemas/StatesResponse"
         "400":
           description: Bad request - invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  # ============================================
+  # Events Endpoints
+  # ============================================
+  /events/communications/organizations:
+    get:
+      tags:
+        - events
+      summary: Get announcements and calendar events
+      description: Returns announcements and calendar events for an organization
+      operationId: getEventsCommunications
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: organizationGuid
+          in: query
+          required: true
+          description: Organization GUID to fetch events for
+          schema:
+            type: string
+            format: uuid
+        - name: communicationType
+          in: query
+          description: Type of communication (Announcement, CalendarEvent)
+          schema:
+            type: string
+            enum:
+              - Announcement
+              - CalendarEvent
+        - name: status
+          in: query
+          description: Event status filter
+          schema:
+            type: string
+            enum:
+              - active
+              - deleted
+        - name: everyChildOrganization
+          in: query
+          description: Include child organizations
+          schema:
+            type: boolean
+        - name: fromDate
+          in: query
+          description: Start date filter (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: toDate
+          in: query
+          description: End date filter (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+        - name: perPage
+          in: query
+          description: Items per page
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsCommunicationsResponse"
+        "401":
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -1782,57 +1860,6 @@ components:
               createdDate:
                 type: string
                 format: date-time
-    AssignedCommissionersResponse:
-      type: object
-      properties:
-        organizationGuid:
-          type: string
-          format: uuid
-        organizationType:
-          type: string
-        organizationNumber:
-          type: string
-        organizationCharterName:
-          type: string
-        assignedCommissioners:
-          type: array
-          items:
-            type: object
-    UnitsHealthDetailsResponse:
-      type: object
-      properties:
-        units:
-          type: array
-          items:
-            type: object
-            properties:
-              organizationGuid:
-                type: string
-                format: uuid
-              unitTypeId:
-                type: integer
-              unitName:
-                type: string
-              genderAccepted:
-                type: string
-    UnitsHealthManualEntryResponse:
-      type: object
-      properties:
-        metrics:
-          type: array
-          items:
-            type: object
-            properties:
-              unitHealthIndicatorManualEntryGuid:
-                type: string
-                format: uuid
-              healthMetricCode:
-                type: string
-              healthMetricName:
-                type: string
-              calendarEventId:
-                type: integer
-                nullable: true
     # ============================================
     # Organization Response Schemas
     # ============================================
@@ -1859,17 +1886,42 @@ components:
           type: boolean
     TrainingSummaryResponse:
       type: object
+      description: Organization training status summary
       properties:
         trainedLeadersCount:
           type: integer
+          description: Number of position-trained leaders
         notTrainedLeadersCount:
           type: integer
+          description: Number of leaders not position-trained
         yptCurrentCount:
           type: integer
+          description: Number with current YPT
         yptExpiredCount:
           type: integer
+          description: Number with expired YPT
         yptNeverTakenCount:
           type: integer
+          description: Number who never took YPT
+        yptCurrentCount14:
+          type: integer
+          description: YPT expiring in 14 days
+        yptCurrentCount25:
+          type: integer
+          description: YPT expiring in 25 days
+        yptCurrentCount60:
+          type: integer
+          description: YPT expiring in 60 days
+        yptCurrentCount90:
+          type: integer
+          description: YPT expiring in 90 days
+        yptCurrentCount90plus:
+          type: integer
+          description: YPT valid beyond 90 days
+        lastDataRefreshDate:
+          type: string
+          format: date-time
+          description: When training data was last refreshed
     PinResponse:
       type: object
       description: Unit PIN (Public Information Network) data including meeting location and unit details
@@ -2266,24 +2318,6 @@ components:
         program:
           type: string
           description: Program name (e.g., "Tigers", "Cub Scouts", "Webelos", "Scouts BSA")
-    Key3Response:
-      type: array
-      items:
-        type: object
-        properties:
-          organizationId:
-            type: integer
-          organizationGuid:
-            type: string
-            format: uuid
-          organizationNumber:
-            type: string
-          organizationName:
-            type: string
-          organizationKey3:
-            type: array
-            items:
-              type: object
     OrdersResponse:
       type: object
       description: Orders and renewals for an organization, includes full council/district hierarchy
@@ -2556,21 +2590,6 @@ components:
           type: integer
         retentionPercentage:
           type: number
-    StripeTokenResponse:
-      type: object
-      properties:
-        paymentMethodType:
-          type: string
-        last4:
-          type: string
-        bankName:
-          type: string
-          nullable: true
-        creditCardName:
-          type: string
-          nullable: true
-        payerName:
-          type: string
     # ============================================
     # Registration Response Schemas
     # ============================================
@@ -2824,6 +2843,636 @@ components:
         uRL:
           type: string
           description: Direct URL if applicable
+    # ============================================
+    # Events Schemas
+    # ============================================
+    EventsCommunicationsResponse:
+      type: object
+      description: Announcements and calendar events
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommunicationEvent"
+    CommunicationEvent:
+      type: object
+      description: Announcement or calendar event
+      properties:
+        eventGuid:
+          type: string
+          format: uuid
+        organizationGuid:
+          type: string
+          format: uuid
+        organizationName:
+          type: string
+        acceptGender:
+          type: string
+        unitType:
+          type: string
+        unitTypeId:
+          type: string
+        unitNumber:
+          type: string
+        unitName:
+          type: string
+        organizationType:
+          type: string
+        organizationTypeId:
+          type: integer
+        charterOrgName:
+          type: string
+        updateableByCurrentUser:
+          type: string
+        communicationType:
+          type: string
+          nullable: true
+        calendarEventName:
+          type: string
+        calendarEventTypeId:
+          type: integer
+          nullable: true
+        calendarEventLocation:
+          type: string
+        calendarEventType:
+          type: string
+        announcementMessage:
+          type: string
+          description: HTML content of announcement
+        announcementTitle:
+          type: string
+        startDateTime:
+          type: string
+          format: date-time
+        endDateTime:
+          type: string
+          format: date-time
+        deleted:
+          type: string
+        createdDateTime:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        createdByPersonGuid:
+          type: string
+          format: uuid
+        createdByMemberId:
+          type: string
+        updatedDateTime:
+          type: string
+        updatedBy:
+          type: string
+        deletedDateTime:
+          type: string
+        deletedBy:
+          type: string
+        deletedByPersonGuid:
+          type: string
+        deletedByMemberId:
+          type: string
+    # ============================================
+    # Commissioner Schemas (expanded)
+    # ============================================
+    AssignedCommissionersResponse:
+      type: object
+      description: Commissioners assigned to a unit
+      properties:
+        organizationGuid:
+          type: string
+          format: uuid
+        organizationType:
+          type: string
+        organizationNumber:
+          type: string
+        organizationCharterName:
+          type: string
+        assignedCommissioners:
+          type: array
+          items:
+            $ref: "#/components/schemas/AssignedCommissioner"
+    AssignedCommissioner:
+      type: object
+      properties:
+        personGuid:
+          type: string
+          format: uuid
+        memberId:
+          type: integer
+        personId:
+          type: integer
+        personfullName:
+          type: string
+        firstName:
+          type: string
+        middleName:
+          type: string
+        lastName:
+          type: string
+        nameSuffix:
+          type: string
+        positionId:
+          type: integer
+        position:
+          type: string
+          description: "Commissioner position (Unit Commissioner, District Commissioner)"
+    UnitsHealthDetailsResponse:
+      type: object
+      description: Unit health metrics for commissioner tools
+      properties:
+        units:
+          type: array
+          items:
+            $ref: "#/components/schemas/UnitHealthDetail"
+    UnitHealthDetail:
+      type: object
+      properties:
+        organizationGuid:
+          type: string
+          format: uuid
+        unitTypeId:
+          type: integer
+        unitName:
+          type: string
+        genderAccepted:
+          type: string
+        lastContact:
+          type: string
+          description: Date of last commissioner contact (MM/DD/YYYY)
+        lastConnectionDate:
+          type: string
+          description: Date of last connection (MM/DD/YYYY)
+        keyLeadersTrained:
+          type: integer
+          description: "1 = trained, 0 = not trained"
+        exceedSmallUnitThreshold:
+          type: integer
+        yoyMembershipGrowth:
+          type: integer
+          description: "1 = growth, 0 = no growth, -1 = decline"
+        advancementsYouthLeadership:
+          type: integer
+        outdoorSuperActivity:
+          type: integer
+        youthRetained:
+          type: integer
+        youthRetainedEligible:
+          type: integer
+        youthRetentionPercentage:
+          type: number
+        index:
+          type: integer
+          description: Overall health index score
+        change:
+          type: integer
+          description: Change from previous period
+    UnitsHealthManualEntryResponse:
+      type: object
+      description: Manual health metric entries
+      properties:
+        metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/ManualHealthMetric"
+    ManualHealthMetric:
+      type: object
+      properties:
+        unitHealthIndicatorManualEntryGuid:
+          type: string
+          format: uuid
+        healthMetricCode:
+          type: string
+        healthMetricName:
+          type: string
+        calendarEventId:
+          type: string
+        effectiveDt:
+          type: string
+          format: date-time
+        expiryDt:
+          type: string
+          format: date-time
+        lastModifiedBy:
+          type: string
+        lastModifiedDt:
+          type: string
+        createdBy:
+          type: string
+        createdDt:
+          type: string
+          format: date-time
+        deletedDt:
+          type: string
+        deletedBy:
+          type: string
+    # ============================================
+    # Dashboard Schemas (expanded)
+    # ============================================
+    UnitActivitiesDashboardResponse:
+      type: object
+      description: Unit outdoor activities summary
+      properties:
+        CampOuts:
+          type: object
+          properties:
+            Campouts:
+              type: integer
+            CampoutsScoutParticipating:
+              type: integer
+            CampoutsTotalAttendance:
+              type: integer
+            NightsCamped:
+              type: integer
+            DaysCamped:
+              type: integer
+        ServiceProjects:
+          type: object
+          properties:
+            ServiceProjects:
+              type: integer
+            ServiceProjectsScoutParticipating:
+              type: integer
+            ServiceProjectsTotalAttendance:
+              type: integer
+            ServiceHours:
+              type: integer
+            ConservationHours:
+              type: integer
+        Hikes:
+          type: object
+          properties:
+            Hikes:
+              type: integer
+            HikesScoutParticipating:
+              type: integer
+            HikesTotalAttendance:
+              type: integer
+    UnitAdvancementDashboardResponse:
+      type: object
+      description: Unit advancement statistics by rank
+      properties:
+        DistrictName:
+          type: string
+        OrganizationName:
+          type: string
+        LionMTD:
+          type: integer
+        LionYTD:
+          type: integer
+        TigerMTD:
+          type: integer
+        TigerYTD:
+          type: integer
+        BobcatMTD:
+          type: integer
+        BobcatYTD:
+          type: integer
+        WolfMTD:
+          type: integer
+        WolfYTD:
+          type: integer
+        BearMTD:
+          type: integer
+        BearYTD:
+          type: integer
+        WebelosMTD:
+          type: integer
+        WebelosYTD:
+          type: integer
+        LightMTD:
+          type: integer
+        LightYTD:
+          type: integer
+        CubsRanksMTD:
+          type: integer
+        CubsRanksYTD:
+          type: integer
+        ScoutMTD:
+          type: integer
+        ScoutYTD:
+          type: integer
+        TenderfootMTD:
+          type: integer
+        TenderfootYTD:
+          type: integer
+        SecondClassMTD:
+          type: integer
+        SecondClassYTD:
+          type: integer
+        FirstClassMTD:
+          type: integer
+        FirstClassYTD:
+          type: integer
+        StarMTD:
+          type: integer
+        StarYTD:
+          type: integer
+        LifeMTD:
+          type: integer
+        LifeYTD:
+          type: integer
+        EagleMTD:
+          type: integer
+        EagleYTD:
+          type: integer
+        BSATotalMTD:
+          type: integer
+        BSATotalYTD:
+          type: integer
+        PalmsMTD:
+          type: integer
+        PalmsYTD:
+          type: integer
+        MeritBAdgesMTD:
+          type: integer
+        MeritBAdgesYTD:
+          type: integer
+    YouthMembershipDashboardResponse:
+      type: object
+      description: Youth membership statistics and demographics
+      properties:
+        unitsIncreasedMembershipOverLY:
+          type: integer
+        unitsIncreasedMembership3MonthsAgo:
+          type: integer
+        retained:
+          type: integer
+        retainedEligible:
+          type: integer
+        retentionPercentage:
+          type: number
+        YouthTotal:
+          $ref: "#/components/schemas/MembershipDemographics"
+        CubScoutsTotal:
+          $ref: "#/components/schemas/MembershipDemographics"
+        ScoutsBSATotal:
+          $ref: "#/components/schemas/MembershipDemographics"
+        VenturingTotal:
+          $ref: "#/components/schemas/MembershipDemographics"
+    MembershipDemographics:
+      type: object
+      description: Membership demographics by program
+      properties:
+        MembersType:
+          type: string
+        NewBoys:
+          type: integer
+        NewGirls:
+          type: integer
+        NewTotalThisYear:
+          type: integer
+        NewTotalLastYear:
+          type: integer
+        NewDifference:
+          type: integer
+        NewPercentage:
+          type: number
+        NewChangeMarker:
+          type: integer
+          description: "1 = increase, -1 = decrease, 0 = no change"
+        ActualBoys:
+          type: integer
+        ActualGirls:
+          type: integer
+        ActualTotalThisYear:
+          type: integer
+        ActualTotalLastYear:
+          type: integer
+        ActualDifference:
+          type: integer
+        ActualPercentage:
+          type: number
+        ActualChangeMarker:
+          type: integer
+        Age05:
+          type: integer
+        Age06:
+          type: integer
+        Age07:
+          type: integer
+        Age08:
+          type: integer
+        Age09:
+          type: integer
+        Age10:
+          type: integer
+        Age11:
+          type: integer
+        Age12:
+          type: integer
+        Age13:
+          type: integer
+        Age14:
+          type: integer
+        Age15:
+          type: integer
+        Age16:
+          type: integer
+        Age17:
+          type: integer
+        Age18:
+          type: integer
+        Age19:
+          type: integer
+    RenewalDashboardResponse:
+      type: object
+      description: Renewal status dashboard (council/district level)
+      properties:
+        TotalUnits:
+          type: integer
+        AvailableForRenewal:
+          type: integer
+        RenewalsNotStarted:
+          type: integer
+        InProcessRenewals:
+          type: integer
+        Initiated:
+          type: integer
+        Locked:
+          type: integer
+        LockedPaid:
+          type: integer
+        LockedCorSigned:
+          type: integer
+        LockedNotPaidNotCorSigned:
+          type: integer
+        LockedNotPaidCorSigned:
+          type: integer
+        OnHold:
+          type: integer
+        Waiting:
+          type: integer
+        WaitingPaidNotCorSigned:
+          type: integer
+        WaitingNotPaidNotCorSigned:
+          type: integer
+        WaitingNotPaidCorSigned:
+          type: integer
+        SubmittedInternetRecharter:
+          type: integer
+        ManualCharterReceived:
+          type: integer
+        UnitsPendingPayment:
+          type: integer
+        UnitsReadyToPost:
+          type: integer
+        CompletedRenewals:
+          type: integer
+        PrePostedUnits:
+          type: integer
+        UnitsPosted:
+          type: integer
+    UnitRenewalStatusDashboardResponse:
+      type: object
+      description: Unit-level renewal status
+      properties:
+        totalUnits:
+          type: integer
+        availableForRenewal:
+          type: integer
+        renewalsNotStarted:
+          type: integer
+        inProcessRenewals:
+          type: integer
+        initiated:
+          type: integer
+        paymentSubmited:
+          type: integer
+        pendingApproval:
+          type: integer
+        prePostedUnits:
+          type: integer
+        unitsPosted:
+          type: integer
+        unitsClosed:
+          type: integer
+    # ============================================
+    # Payment and Registration Schemas
+    # ============================================
+    StripeTokenResponse:
+      type: object
+      description: Saved Stripe payment method
+      properties:
+        paymentMethodType:
+          type: string
+          description: "payment_bank or payment_card"
+        last4:
+          type: string
+          description: Last 4 digits of account/card
+        bankName:
+          type: string
+        creditCardName:
+          type: string
+        payerName:
+          type: string
+        payerEmail:
+          type: string
+        createdDt:
+          type: string
+          format: date-time
+    BasicRequirementsResponse:
+      type: array
+      description: Basic age/grade requirements by membership type
+      items:
+        type: object
+        properties:
+          membershipType:
+            type: string
+            enum:
+              - Youth
+              - Adult
+          minAge:
+            type: integer
+          maxAge:
+            oneOf:
+              - type: integer
+              - type: string
+          minGrade:
+            oneOf:
+              - type: string
+              - type: integer
+          maxGrade:
+            oneOf:
+              - type: string
+              - type: integer
+    # ============================================
+    # Key 3 Schema
+    # ============================================
+    Key3Response:
+      type: array
+      description: Key 3 leaders for an organization
+      items:
+        $ref: "#/components/schemas/Key3Member"
+    Key3Member:
+      type: object
+      properties:
+        organizationId:
+          type: string
+        organizationGuid:
+          type: string
+          format: uuid
+        organizationNumber:
+          type: string
+        organizationName:
+          type: string
+        organizationKey3:
+          type: object
+          properties:
+            positionId:
+              type: string
+            positionLong:
+              type: string
+              description: "Chartered Organization Rep., Committee Chair, Cubmaster, etc."
+            skPositionCd:
+              type: string
+              description: "CR, CC, CM, SM, etc."
+            personGuid:
+              type: string
+              format: uuid
+            memberId:
+              type: integer
+            firstName:
+              type: string
+            middleName:
+              type: string
+            lastName:
+              type: string
+            nameSuffix:
+              type: string
+        primaryEmailAddress:
+          type: object
+          properties:
+            id:
+              type: string
+            typeId:
+              type: string
+            type:
+              type: string
+            emailAddress:
+              type: string
+        primaryPhone:
+          type: object
+          properties:
+            id:
+              type: string
+            typeId:
+              type: string
+            type:
+              type: string
+            countryId:
+              type: string
+            country:
+              type: string
+            countryCode:
+              type: string
+            areaCode:
+              type: string
+            prefix:
+              type: string
+            lineNumber:
+              type: string
+            extension:
+              type: string
   parameters:
     version:
       name: version
