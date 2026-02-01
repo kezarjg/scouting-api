@@ -967,6 +967,82 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  # ============================================
+  # Person Endpoints
+  # ============================================
+  /persons/v2/{personGuid}/toolkits:
+    parameters:
+      - $ref: "#/components/parameters/personGuid"
+    get:
+      tags:
+        - persons
+      summary: Get user's organizations and toolkits
+      description: Returns list of organizations the user is a member of, used to populate organization dropdown
+      operationId: getPersonToolkits
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToolkitsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /persons/v2/{personGuid}/trainings/ypt:
+    parameters:
+      - $ref: "#/components/parameters/personGuid"
+    get:
+      tags:
+        - persons
+      summary: Get user's YPT training status
+      description: Returns Youth Protection Training status and dates for the user
+      operationId: getPersonYptStatus
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/YptTrainingResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /persons/v2/{personGuid}/{organizationGuid}/tools:
+    parameters:
+      - $ref: "#/components/parameters/personGuid"
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - persons
+      summary: Get tools available for user in an organization
+      description: Returns list of tools/features available to the user for a specific organization based on their roles
+      operationId: getPersonOrgTools
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonOrgToolsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     ErrorResponse:
@@ -2613,6 +2689,141 @@ components:
             type: string
           isComingSoonUnit:
             type: boolean
+    ToolkitsResponse:
+      type: object
+      description: User's organizations and toolkit access
+      properties:
+        Masquerade:
+          type: boolean
+          description: Whether user is masquerading as another user
+        MemAdmin:
+          type: string
+          nullable: true
+        MemberId:
+          type: integer
+          description: User's member ID
+        SecurityToken:
+          type: string
+          nullable: true
+        SysAdmin:
+          type: boolean
+          description: Whether user has system admin privileges
+        identifier:
+          type: string
+          nullable: true
+        items:
+          type: array
+          description: List of organizations the user is a member of
+          items:
+            $ref: "#/components/schemas/ToolkitItem"
+        label:
+          type: string
+          nullable: true
+    ToolkitItem:
+      type: object
+      description: Organization membership entry
+      properties:
+        context:
+          type: string
+          description: Context type (e.g., "membership")
+        id:
+          type: string
+          format: uuid
+          description: Organization GUID - use this with other organization endpoints
+        name:
+          type: string
+          description: Organization full name (e.g., "Pack 0166 Marcellus Vol. Fire Dept Inc")
+        orgType:
+          type: string
+          description: Organization type
+          enum:
+            - Units
+            - Districts
+            - Councils
+            - National
+    YptTrainingResponse:
+      type: object
+      description: User's Youth Protection Training status
+      properties:
+        firstName:
+          type: string
+        middleName:
+          type: string
+        lastName:
+          type: string
+        personFullName:
+          type: string
+        yptStatus:
+          type: string
+          description: YPT status
+          enum:
+            - ACTIVE
+            - EXPIRED
+            - NEVER_TAKEN
+        yptCompletionDate:
+          type: string
+          format: date
+          description: Date YPT was last completed
+        yptExpireDate:
+          type: string
+          format: date
+          description: Date YPT expires
+        enrollmentId:
+          type: integer
+          description: Training enrollment ID
+    PersonOrgToolsResponse:
+      type: object
+      description: Tools available to user for a specific organization
+      properties:
+        identifier:
+          type: string
+          format: uuid
+          description: Organization GUID
+        items:
+          type: array
+          description: List of available tools
+          items:
+            $ref: "#/components/schemas/OrgTool"
+        label:
+          type: string
+    OrgTool:
+      type: object
+      description: Tool/feature available in the organization
+      properties:
+        context:
+          type: string
+          description: Tool context (e.g., "Membership")
+        description:
+          type: string
+          description: Tool description
+        id:
+          type: string
+          format: uuid
+          description: Tool unique identifier
+        metaData:
+          type: array
+          description: Tool configuration metadata
+          items:
+            type: object
+            properties:
+              ToolType:
+                type: string
+                description: Type of tool (dialogue, iframe, widget)
+              ToolName:
+                type: string
+                description: Display name
+              SiteURL:
+                type: string
+                description: URL pattern with placeholders like [[OrganizationGUID]]
+              Target:
+                type: string
+                description: Link target (e.g., "_blank")
+        name:
+          type: string
+          description: Tool name
+        uRL:
+          type: string
+          description: Direct URL if applicable
   parameters:
     version:
       name: version
@@ -2643,6 +2854,14 @@ components:
       in: path
       required: true
       description: Organization GUID (UUID format)
+      schema:
+        type: string
+        format: uuid
+    personGuid:
+      name: personGuid
+      in: path
+      required: true
+      description: Person GUID (UUID format) - from JWT token 'pgu' claim
       schema:
         type: string
         format: uuid
