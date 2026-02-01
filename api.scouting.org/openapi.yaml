@@ -28,6 +28,14 @@ tags:
     externalDocs:
       description: Find out more about registered Scouts
       url: https://github.com/mmarseglia/scouting-api
+  - name: commissioners
+    description: Commissioner tools and unit health
+  - name: organizations
+    description: Organization and unit management
+  - name: registrations
+    description: Registration and recharter
+  - name: lookups
+    description: Lookup data and reference tables
 paths:
   /advancements/ranks:
     get:
@@ -36,11 +44,12 @@ paths:
       summary: Get a list of all ranks and awards
       description: Returns JSON list of all ranks and awards
       operationId: getRanks
+      security: []
       parameters:
-        - $ref: '#/components/schemas/RequestParams/properties/version'
-        - $ref: '#/components/schemas/RequestParams/properties/id'
-        - $ref: '#/components/schemas/RequestParams/properties/programId'
-        - $ref: '#/components/schemas/RequestParams/properties/status'
+        - $ref: '#/components/parameters/version'
+        - $ref: '#/components/parameters/id'
+        - $ref: '#/components/parameters/programId'
+        - $ref: '#/components/parameters/status'
       responses:
         '200':
           description: Successful operation
@@ -67,6 +76,10 @@ paths:
                   - errorDesc
   /lookups/address/countries:
     get:
+      summary: Get a list of all countries
+      description: Returns JSON list of all countries
+      operationId: getCountries
+      security: []
       responses:
         "200":
           description: 200 response
@@ -74,7 +87,13 @@ paths:
             application/json; charset=UTF-8; indent="false":
               schema:
                 $ref: "#/components/schemas/GetLookupsAddressCountries200ResponseBody"
-  /advancements/youth/{userId}/:
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /advancements/youth/{userId}:
     parameters:
       - in: path
         name: userId
@@ -82,15 +101,26 @@ paths:
         schema:
           type: string
     get:
+      summary: Get youth advancement record
+      description: Returns advancement record for a specific youth member
+      operationId: getYouthAdvancements
+      security:
+        - BearerAuth: []
       responses:
-        "401":
-          description: 401 response
+        "200":
+          description: Successful operation
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/GetAdvancementsYouthYouth401ResponseBody"
+                $ref: "#/components/schemas/YouthAdvancementResponse"
+        "401":
+          description: Unauthorized - missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
-          description: 404 response
+          description: Youth member not found
           content:
             application/json; charset=UTF-8:
               schema:
@@ -106,24 +136,6 @@ paths:
                   - errorCode
                   - message
                   - errorDesc
-  /advancements/youth/{userId}:
-    parameters:
-      - in: path
-        name: userId
-        required: true
-        schema:
-          type: string
-    get:
-      security:
-        - BearerAuth:
-            []
-      responses:
-        "404":
-          description: 404 response
-          content:
-            application/json; charset=UTF-8:
-              schema:
-                $ref: "#/components/schemas/GetAdvancementsYouthYouth401ResponseBody"
         "405":
           description: 405 response
           content:
@@ -149,14 +161,30 @@ paths:
         schema:
           type: string
     get:
+      summary: Get youth leadership position history
+      description: Returns leadership positions held by a specific youth member
+      operationId: getYouthLeadershipHistory
+      security:
+        - BearerAuth: []
       responses:
         "200":
           description: 200 response
           content:
             application/json; charset=UTF-8; indent="false":
               schema:
-                $ref: "#/components/schemas/GetAdvancementsYouthUseridLeadershippositionhistory\
-                  200ResponseBody"
+                $ref: "#/components/schemas/GetAdvancementsYouthUseridLeadershippositionhistory200ResponseBody"
+        "401":
+          description: Unauthorized - missing or invalid authentication
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Youth member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /advancements/ranks/{rank}/requirements:
     parameters:
       - in: path
@@ -165,6 +193,10 @@ paths:
         schema:
           type: string
     get:
+      summary: Get requirements for a specific rank
+      description: Returns detailed requirements for earning a specific rank
+      operationId: getRankRequirements
+      security: []
       responses:
         "200":
           description: 200 response
@@ -172,8 +204,829 @@ paths:
             application/json; charset=UTF-8:
               schema:
                 $ref: "#/components/schemas/GetAdvancementsRanksRankRequirements200ResponseBody"
+        "404":
+          description: Rank not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /advancements/awards:
+    get:
+      tags:
+        - advancements
+      summary: Get a list of all awards
+      description: Returns JSON list of all awards including council awards, religious awards, and special recognitions
+      operationId: getAwards
+      security: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by status (active, expired)
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AwardsResponse"
+        "400":
+          description: Bad request - invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /advancements/adventures:
+    get:
+      tags:
+        - advancements
+      summary: Get a list of all Cub Scout adventures
+      description: Returns JSON list of all Cub Scout adventures for Tiger, Wolf, Bear, and Webelos ranks
+      operationId: getAdventures
+      security: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by status (active, expired)
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdventuresResponse"
+        "400":
+          description: Bad request - invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /lookups/address/states:
+    get:
+      summary: Get a list of states/provinces
+      description: Returns JSON list of states or provinces, optionally filtered by country
+      operationId: getStates
+      security: []
+      parameters:
+        - name: countryId
+          in: query
+          description: Filter states by country ID (1 for USA)
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatesResponse"
+        "400":
+          description: Bad request - invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  # ============================================
+  # Commissioner Endpoints
+  # ============================================
+  /commissioners/v2/organizations/{organizationGuid}/roundtable:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - commissioners
+      summary: Get roundtable information for an organization
+      operationId: getOrganizationRoundtable
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundtableResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /commissioners/v2/organizations/{organizationGuid}/units/assignedCommissioners:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - commissioners
+      summary: Get commissioners assigned to units in an organization
+      operationId: getAssignedCommissioners
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssignedCommissionersResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /commissioners/v2/organizations/{organizationGuid}/unitsHealth/details:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - commissioners
+      summary: Get unit health details for an organization
+      operationId: getUnitsHealthDetails
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnitsHealthDetailsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /commissioners/v2/organizations/{organizationGuid}/unitsHealth/manualEntry:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - commissioners
+      summary: Get manual entry health metrics for units
+      operationId: getUnitsHealthManualEntry
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnitsHealthManualEntryResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  # ============================================
+  # Organization Endpoints
+  # ============================================
+  /organizations/{organizationGuid}/membershipSummary:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get membership summary for an organization
+      operationId: getMembershipSummary
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: includeIH
+          in: query
+          description: Include inactive/historical members
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MembershipSummaryResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/{organizationGuid}/olrSettings:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get online registration settings for an organization
+      operationId: getOlrSettings
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OlrSettingsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/{organizationGuid}/adjustedOLRSettings:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get adjusted online registration settings
+      operationId: getAdjustedOlrSettings
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OlrSettingsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/{organizationGuid}/orgTrainingSummary:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get training summary for an organization
+      operationId: getOrgTrainingSummary
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: includeIH
+          in: query
+          description: Include inactive/historical
+          schema:
+            type: boolean
+        - name: isStaff
+          in: query
+          description: Filter for staff members
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrainingSummaryResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/{organizationGuid}/pin:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get PIN information for an organization
+      operationId: getOrganizationPin
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PinResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/positions/{organizationGuid}:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get positions for an organization
+      operationId: getOrganizationPositions
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationPositionsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/v2/{organizationGuid}/orgAdults:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    post:
+      tags:
+        - organizations
+      summary: Get adult members of an organization
+      operationId: getOrgAdults
+      security:
+        - BearerAuth: []
+      requestBody:
+        description: Filter criteria for adults
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrgMembersFilterRequest"
+            example:
+              filterData:
+                firstName: ""
+                lastName: ""
+                position: ""
+                positionStatus: "active"
+                registered: "all"
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgMembersResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/v2/{organizationGuid}/orgYouths:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    post:
+      tags:
+        - organizations
+      summary: Get youth members of an organization
+      operationId: getOrgYouths
+      security:
+        - BearerAuth: []
+      requestBody:
+        description: Filter criteria for youths
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrgMembersFilterRequest"
+            example:
+              filterData:
+                firstName: ""
+                lastName: ""
+                position: ""
+                positionStatus: "active"
+                registered: "all"
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgMembersResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/v2/{organizationGuid}/key3:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get Key 3 leaders for an organization
+      operationId: getKey3
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Key3Response"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/v2/{organizationGuid}/orders:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get orders for an organization
+      operationId: getOrganizationOrders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+        - name: perPage
+          in: query
+          description: Items per page
+          schema:
+            type: integer
+        - name: orderTypeId
+          in: query
+          description: Filter by order type
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrdersResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/v2/{organizationGuid}/renewalDashboard:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get renewal dashboard data
+      operationId: getRenewalDashboard
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RenewalDashboardResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/v2/{organizationGuid}/unitActivitiesDashboard:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get unit activities dashboard
+      operationId: getUnitActivitiesDashboard
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnitActivitiesDashboardResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/v2/{organizationGuid}/unitAdvancementDashboard:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get unit advancement dashboard
+      operationId: getUnitAdvancementDashboard
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnitAdvancementDashboardResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/v2/{organizationGuid}/unitRenewalStatusDashboard:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get unit renewal status dashboard
+      operationId: getUnitRenewalStatusDashboard
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnitRenewalStatusDashboardResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/v2/{organizationGuid}/unitRoundtableAttendance:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get unit roundtable attendance
+      operationId: getUnitRoundtableAttendance
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: year
+          in: query
+          description: Year to filter by
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundtableAttendanceResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/v2/{organizationGuid}/youthMembershipDashboard:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get youth membership dashboard
+      operationId: getYouthMembershipDashboard
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/YouthMembershipDashboardResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /organizations/v2/payment/{organizationGuid}/stripe/token:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    get:
+      tags:
+        - organizations
+      summary: Get Stripe payment token for organization
+      operationId: getStripeToken
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StripeTokenResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  # ============================================
+  # Registration Endpoints
+  # ============================================
+  /registrations/unitType/{unitType}/basicRequirements:
+    parameters:
+      - name: unitType
+        in: path
+        required: true
+        description: Unit type (Pack, Troop, Crew, etc.)
+        schema:
+          type: string
+    get:
+      tags:
+        - registrations
+      summary: Get basic requirements for a unit type
+      operationId: getUnitTypeBasicRequirements
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnitTypeRequirementsResponse"
+        "404":
+          description: Unit type not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /registrations/v2/{organizationGuid}/validateForRecharter:
+    parameters:
+      - $ref: "#/components/parameters/organizationGuid"
+    post:
+      tags:
+        - registrations
+      summary: Validate unit readiness for annual charter renewal
+      description: |
+        Checks if a unit meets all requirements for recharter (annual charter renewal).
+        Returns validation errors for issues like:
+        - Missing required leadership positions
+        - Leaders without current Youth Protection Training (YPT)
+        - Leaders under 18 years old
+        - Insufficient youth membership
+      operationId: validateForRecharter
+      security:
+        - BearerAuth: []
+      requestBody:
+        description: Recharter validation parameters
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecharterValidationRequest"
+            example:
+              isCouncilPaid: false
+              unitType: "pack"
+              minimum2Youth: true
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecharterValidationResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /registrations/v2/orders/{orderId}/bsaPayments:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        description: Order ID
+        schema:
+          type: integer
+    get:
+      tags:
+        - registrations
+      summary: Get BSA payments for an order
+      operationId: getOrderBsaPayments
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BsaPaymentsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  # ============================================
+  # Additional Lookup Endpoints
+  # ============================================
+  /lookups/organizations/units/specialInterestTypes:
+    get:
+      tags:
+        - lookups
+      summary: Get special interest unit types
+      operationId: getSpecialInterestTypes
+      security: []
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SpecialInterestTypesResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      properties:
+        errorCode:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error message
+        errorDesc:
+          type: string
+          description: Detailed error description
+      required:
+        - errorCode
+        - message
+        - errorDesc
+    YouthAdvancementResponse:
+      type: object
+      description: Youth advancement record
+      properties:
+        userId:
+          type: string
+        ranks:
+          type: array
+          items:
+            type: object
+            properties:
+              rankId:
+                type: integer
+              name:
+                type: string
+              dateEarned:
+                type: string
+              version:
+                type: string
+        meritBadges:
+          type: array
+          items:
+            type: object
+            properties:
+              meritBadgeId:
+                type: integer
+              name:
+                type: string
+              dateEarned:
+                type: string
+        awards:
+          type: array
+          items:
+            type: object
+            properties:
+              awardId:
+                type: integer
+              name:
+                type: string
+              dateEarned:
+                type: string
     Ranks:
       type: object
       properties:
@@ -367,17 +1220,6 @@ components:
               - imageUrl400
       required:
         - ranks
-    RequestParams:
-      type: object
-      properties:
-        version:
-          type: string
-        id:
-          type: string
-        programId:
-          type: string
-        status:
-          type: string
     GetLookupsAddressCountries200ResponseBody:
       type: array
       items:
@@ -393,19 +1235,6 @@ components:
           - name
           - short
           - id
-    GetAdvancementsYouthYouth401ResponseBody:
-      type: object
-      properties:
-        errorCode:
-          type: string
-        message:
-          type: string
-        errorDesc:
-          type: string
-      required:
-        - errorCode
-        - message
-        - errorDesc
     GetAdvancementsYouthUseridLeadershippositionhistory200ResponseBody:
       type: array
       items:
@@ -424,8 +1253,10 @@ components:
           endDate:
             type: string
           denId:
+            type: number
             nullable: true
           den:
+            type: string
             nullable: true
           patrolId:
             type: number
@@ -440,12 +1271,16 @@ components:
           unit:
             type: string
           districtId:
+            type: number
             nullable: true
           district:
+            type: string
             nullable: true
           councilId:
+            type: number
             nullable: true
           council:
+            type: string
             nullable: true
           rankId:
             type: number
@@ -462,12 +1297,14 @@ components:
           imageUrl400:
             type: string
           requestedDate:
+            type: string
             nullable: true
           unitApproved:
             type: boolean
           approved:
             type: boolean
           approvalMessage:
+            type: string
             nullable: true
           notes:
             type: string
@@ -476,12 +1313,15 @@ components:
           available:
             type: boolean
           listType:
+            type: string
             nullable: true
           rosterPending:
             type: boolean
           dateInvited:
+            type: string
             nullable: true
           personalMessage:
+            type: string
             nullable: true
           bsaMemberId:
             type: string
@@ -659,6 +1499,1153 @@ components:
       required:
         - rankInformation
         - requirements
+    AwardsResponse:
+      type: object
+      properties:
+        awards:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              short:
+                type: string
+              category:
+                type: string
+              itemNumber:
+                type: string
+              rankId:
+                type: string
+              rank:
+                type: string
+              image:
+                type: string
+              imageSmall:
+                type: string
+              sku:
+                type: string
+              skuName:
+                type: string
+              price:
+                type: string
+              priceLastupdated:
+                type: string
+              adultAward:
+                type: string
+              adminNotes:
+                type: string
+              unitTypeId:
+                type: string
+              program:
+                type: string
+              unitType:
+                type: string
+              scoutNet:
+                type: string
+              showOnEvents:
+                type: string
+              showOnQuickEntry:
+                type: string
+              activeDate:
+                type: string
+              expiredDate:
+                type: string
+              imageUrl100:
+                type: string
+              imageUrl200:
+                type: string
+              imageUrl300:
+                type: string
+              imageUrl400:
+                type: string
+              versions:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    awardVersionId:
+                      type: integer
+                    version:
+                      type: string
+                    rankId:
+                      type: integer
+                      nullable: true
+                    rank:
+                      type: string
+                      nullable: true
+                    expiredDate:
+                      type: string
+                      nullable: true
+                    versionEffectiveDt:
+                      type: string
+                    versionExpiryDt:
+                      type: string
+                      nullable: true
+                    image:
+                      type: string
+                      nullable: true
+            required:
+              - id
+              - name
+              - short
+      required:
+        - awards
+    AdventuresResponse:
+      type: object
+      properties:
+        adventures:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              rankId:
+                type: integer
+              rank:
+                type: string
+              name:
+                type: string
+              nameShort:
+                type: string
+              skuName:
+                type: string
+              required:
+                type: boolean
+              expiryDt:
+                type: string
+                nullable: true
+              sortOrder:
+                type: integer
+              image:
+                type: string
+                nullable: true
+              sku:
+                type: string
+              price:
+                type: number
+              priceLastUpdated:
+                type: string
+              scoutNet:
+                type: string
+              bsaExternalUrlId:
+                type: string
+                nullable: true
+              pageUrl:
+                type: string
+              searchKeywords:
+                type: string
+                nullable: true
+              versionId:
+                type: integer
+              version:
+                type: integer
+              header:
+                type: string
+                nullable: true
+              footer:
+                type: string
+                nullable: true
+              adminNotes:
+                type: string
+                nullable: true
+              imageUrl100:
+                type: string
+              imageUrl200:
+                type: string
+              imageUrl300:
+                type: string
+            required:
+              - id
+              - rankId
+              - rank
+              - name
+              - required
+              - versionId
+              - version
+      required:
+        - adventures
+    StatesResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+          short:
+            type: string
+          id:
+            type: string
+        required:
+          - name
+          - short
+          - id
+    # ============================================
+    # Commissioner Response Schemas
+    # ============================================
+    RoundtableResponse:
+      type: object
+      properties:
+        organizationGuid:
+          type: string
+          format: uuid
+        roundtables:
+          type: array
+          items:
+            type: object
+            properties:
+              roundtableGuid:
+                type: string
+                format: uuid
+              roundtableDate:
+                type: string
+                format: date
+              createdDate:
+                type: string
+                format: date-time
+    AssignedCommissionersResponse:
+      type: object
+      properties:
+        organizationGuid:
+          type: string
+          format: uuid
+        organizationType:
+          type: string
+        organizationNumber:
+          type: string
+        organizationCharterName:
+          type: string
+        assignedCommissioners:
+          type: array
+          items:
+            type: object
+    UnitsHealthDetailsResponse:
+      type: object
+      properties:
+        units:
+          type: array
+          items:
+            type: object
+            properties:
+              organizationGuid:
+                type: string
+                format: uuid
+              unitTypeId:
+                type: integer
+              unitName:
+                type: string
+              genderAccepted:
+                type: string
+    UnitsHealthManualEntryResponse:
+      type: object
+      properties:
+        metrics:
+          type: array
+          items:
+            type: object
+            properties:
+              unitHealthIndicatorManualEntryGuid:
+                type: string
+                format: uuid
+              healthMetricCode:
+                type: string
+              healthMetricName:
+                type: string
+              calendarEventId:
+                type: integer
+                nullable: true
+    # ============================================
+    # Organization Response Schemas
+    # ============================================
+    MembershipSummaryResponse:
+      type: object
+      properties:
+        totalActiveAdults:
+          type: integer
+        totalActiveYouth:
+          type: integer
+    OlrSettingsResponse:
+      type: object
+      properties:
+        onlineRegOptIn:
+          type: boolean
+        onboardingUrl:
+          type: string
+          nullable: true
+        reassignAfter5DaysOptIn:
+          type: boolean
+        scoutExecEmailOptIn:
+          type: boolean
+        includeFeesOptIn:
+          type: boolean
+    TrainingSummaryResponse:
+      type: object
+      properties:
+        trainedLeadersCount:
+          type: integer
+        notTrainedLeadersCount:
+          type: integer
+        yptCurrentCount:
+          type: integer
+        yptExpiredCount:
+          type: integer
+        yptNeverTakenCount:
+          type: integer
+    PinResponse:
+      type: object
+      description: Unit PIN (Public Information Network) data including meeting location and unit details
+      properties:
+        pinInformation:
+          type: object
+          description: Meeting location and contact details
+          properties:
+            pinId:
+              type: integer
+            isPinActive:
+              type: boolean
+            isPinModeCouncil:
+              type: boolean
+            isFundRaisingUnit:
+              type: boolean
+              nullable: true
+            unitAdditionalInformation:
+              type: string
+              nullable: true
+            unitWebsite:
+              type: string
+            alternateUnitDescription:
+              type: string
+            unitAnnouncement:
+              type: string
+            meetingDay:
+              type: string
+              nullable: true
+            meetingTime:
+              type: string
+              nullable: true
+            meetingAddressLine1:
+              type: string
+            meetingAddressLine2:
+              type: string
+            meetingCity:
+              type: string
+            meetingState:
+              type: string
+            meetingZip:
+              type: string
+            latitude:
+              type: number
+              format: double
+            longitude:
+              type: number
+              format: double
+            isAcceptingOnlineRegistrations:
+              type: boolean
+            hasUnitFee:
+              type: boolean
+              nullable: true
+            unitFee:
+              type: number
+              nullable: true
+            unitFeeCurrency:
+              type: string
+              nullable: true
+            unitFeeCoverage:
+              type: string
+              nullable: true
+            showAlternateDescriptionOnPin:
+              type: boolean
+            showUnitAnnouncementOnPin:
+              type: boolean
+            showMeetingAddressOnPin:
+              type: boolean
+            showContactPersonOnPin:
+              type: boolean
+            showContactEmailOnPin:
+              type: boolean
+            showContactPhoneOnPin:
+              type: boolean
+            showCouncilEmailOnPin:
+              type: boolean
+            showCouncilPhoneOnPin:
+              type: boolean
+            showCouncilPictureOnPin:
+              type: boolean
+            showCouncilWebsiteOnPin:
+              type: boolean
+            lastModifiedBy:
+              type: string
+            lastModifiedDt:
+              type: string
+              format: date-time
+            createdBy:
+              type: string
+            createdDt:
+              type: string
+              format: date-time
+            contactPersons:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  personGuid:
+                    type: string
+                    format: uuid
+                  firstName:
+                    type: string
+                  middleName:
+                    type: string
+                  lastName:
+                    type: string
+                  nameSuffix:
+                    type: string
+                  contactOrder:
+                    type: integer
+                  email:
+                    type: string
+                  phone:
+                    type: string
+        unitInformation:
+          type: object
+          description: Complete unit details including district and charter info
+          properties:
+            organizationGuid:
+              type: string
+              format: uuid
+              description: Unique identifier for the unit
+            organizationType:
+              type: string
+              description: "Type of organization (e.g., 'unit')"
+            name:
+              type: string
+              description: Unit name (e.g., "Pack 0166")
+            number:
+              type: string
+              description: Unit number
+            type:
+              type: string
+              description: Unit type (Pack, Troop, Crew, etc.)
+            fullName:
+              type: string
+              description: Full unit name including charter org
+            territoryOrganizationGuid:
+              type: string
+              format: uuid
+              description: GUID of the service territory
+            territoryLong:
+              type: string
+              description: Service territory name
+            territoryNumber:
+              type: string
+              description: Service territory number
+            districtGuid:
+              type: string
+              format: uuid
+              description: GUID of the district
+            districtName:
+              type: string
+              description: District name
+            districtNumber:
+              type: string
+              description: District number
+            tinyUrl:
+              type: string
+              description: Short URL for online registration
+            acceptGender:
+              type: string
+              description: Gender acceptance policy
+            councilAcceptGender:
+              type: string
+              description: Council gender acceptance code
+            specialInterestTypeId:
+              type: integer
+            specialInterestType:
+              type: string
+              description: Program type (e.g., "TRADITIONAL PROGRAM")
+            specialInterestTypeCode:
+              type: string
+            isLDS:
+              type: boolean
+            isSTEM:
+              type: boolean
+            isComingSoon:
+              type: boolean
+            isCharterExpired:
+              type: boolean
+            isCharterLapsed:
+              type: boolean
+            charterInformation:
+              type: object
+              description: Charter/charter organization details
+              properties:
+                charterId:
+                  type: integer
+                term:
+                  type: integer
+                  description: Charter term in months
+                communityOrganizationName:
+                  type: string
+                  description: Chartering organization name
+                effectiveDt:
+                  type: string
+                  format: date
+                expiryDt:
+                  type: string
+                  format: date
+                fKCommOrgTypeId:
+                  type: integer
+            primaryAddress:
+              type: object
+              description: Unit mailing address
+              properties:
+                addressLine1:
+                  type: string
+                addressLine2:
+                  type: string
+                addressLine3:
+                  type: string
+                city:
+                  type: string
+                state:
+                  type: string
+                zip4:
+                  type: string
+                zip5:
+                  type: string
+                country:
+                  type: string
+    OrganizationPositionsResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        orgType:
+          type: string
+        Positions:
+          type: array
+          items:
+            type: object
+            properties:
+              positionLong:
+                type: string
+              PositionId:
+                type: integer
+    OrgMembersFilterRequest:
+      type: object
+      description: Filter criteria for organization members
+      properties:
+        filterData:
+          type: object
+          properties:
+            firstName:
+              type: string
+              description: Filter by first name (partial match)
+            lastName:
+              type: string
+              description: Filter by last name (partial match)
+            position:
+              type: string
+              description: Filter by position name
+            positionStatus:
+              type: string
+              description: Filter by position status
+              enum:
+                - active
+                - inactive
+                - all
+            registered:
+              type: string
+              description: Filter by registration status
+              enum:
+                - all
+                - registered
+                - unregistered
+    OrgMembersResponse:
+      type: object
+      properties:
+        organizationInfo:
+          type: object
+          properties:
+            organizationFullName:
+              type: string
+            organizationGuid:
+              type: string
+              format: uuid
+            organizationName:
+              type: string
+            organizationTypeId:
+              type: string
+            organizationType:
+              type: string
+            organizationNumber:
+              type: string
+            unitType:
+              type: string
+            unitTypeId:
+              type: string
+            charterOrgName:
+              type: string
+            acceptGender:
+              type: string
+            isComingSoonUnit:
+              type: boolean
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrgMember"
+    OrgMember:
+      type: object
+      description: |
+        Organization member details. Used for both adult and youth rosters.
+        Adult-specific fields (key3, positionTrained, yptStatus, etc.) are null for youth members.
+        Youth-specific fields (grade) are null for adult members.
+      properties:
+        personGuid:
+          type: string
+          format: uuid
+          description: Unique person identifier
+        memberId:
+          type: string
+          description: BSA member ID
+        personFullName:
+          type: string
+        firstName:
+          type: string
+        middleName:
+          type: string
+        lastName:
+          type: string
+        nickName:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          enum:
+            - M
+            - F
+        nameSuffix:
+          type: string
+        pictureUrl:
+          type: string
+          nullable: true
+        ethnicity:
+          type: string
+        # Youth-specific fields
+        grade:
+          type: integer
+          nullable: true
+          description: School grade level (youth only)
+        gradeId:
+          type: integer
+          nullable: true
+          description: Grade identifier (youth only)
+        # Position fields
+        position:
+          type: string
+          description: Position name (e.g., "Cubmaster", "Youth Member", "Den Chief")
+        positionId:
+          type: integer
+        skPositionCd:
+          type: string
+          description: Scoutbook position code
+        isFunctional:
+          type: boolean
+          description: Whether this is a functional (vs registered) position
+        # Adult-specific fields
+        key3:
+          type: string
+          nullable: true
+          description: Whether member is a Key 3 leader (adult only)
+        positionTrained:
+          type: string
+          nullable: true
+          description: Training status for position (adult only)
+        yptStatus:
+          type: string
+          nullable: true
+          description: Youth Protection Training status (adult only)
+          enum:
+            - ACTIVE
+            - EXPIRED
+            - NEVER_TAKEN
+        yptCompletedDate:
+          type: string
+          format: date
+          nullable: true
+          description: Date YPT was completed (adult only)
+        yptExpiredDate:
+          type: string
+          format: date
+          nullable: true
+          description: Date YPT expires (adult only)
+        # Program fields
+        programId:
+          type: integer
+          description: Program identifier
+        program:
+          type: string
+          description: Program name (e.g., "Tigers", "Cub Scouts", "Webelos", "Scouts BSA")
+    Key3Response:
+      type: array
+      items:
+        type: object
+        properties:
+          organizationId:
+            type: integer
+          organizationGuid:
+            type: string
+            format: uuid
+          organizationNumber:
+            type: string
+          organizationName:
+            type: string
+          organizationKey3:
+            type: array
+            items:
+              type: object
+    OrdersResponse:
+      type: object
+      description: Orders and renewals for an organization, includes full council/district hierarchy
+      properties:
+        organization:
+          type: object
+          description: Organization summary
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            number:
+              type: string
+            type:
+              type: string
+              description: Unit type (Pack, Troop, Crew, etc.)
+            typeId:
+              type: integer
+            organizationTypeId:
+              type: integer
+            organizationType:
+              type: string
+              description: "Type category (e.g., 'unit')"
+            specialInterestTypeCode:
+              type: string
+            specialInterestType:
+              type: string
+            fullName:
+              type: string
+              description: Full name including charter org
+            feeTotal:
+              type: number
+              format: double
+            charter:
+              type: object
+              properties:
+                id:
+                  type: integer
+                term:
+                  type: integer
+                effectiveDate:
+                  type: string
+                  format: date
+                expiryDate:
+                  type: string
+                  format: date
+                communityOrganizationName:
+                  type: string
+                  description: Chartering organization name
+        renewals:
+          type: array
+          description: Individual renewal orders with full hierarchy info
+          items:
+            $ref: "#/components/schemas/RenewalOrder"
+    RenewalOrder:
+      type: object
+      description: Individual renewal order with council and district information
+      properties:
+        bsaOrderId:
+          type: integer
+        bsaOrderTypeId:
+          type: integer
+        bsaOrderType:
+          type: string
+          description: "Type: Renewal, UnitRenewal"
+        customerMemberId:
+          type: integer
+        customerFirstName:
+          type: string
+        customerMiddleName:
+          type: string
+        customerLastName:
+          type: string
+        forMemberId:
+          type: integer
+          nullable: true
+          description: Member being renewed (null for UnitRenewal)
+        forFirstName:
+          type: string
+          nullable: true
+        forLastName:
+          type: string
+          nullable: true
+        renewToOrgGuid:
+          type: string
+          format: uuid
+        renewToOrgName:
+          type: string
+        renewToOrgNumber:
+          type: string
+        renewToOrgTypeId:
+          type: integer
+        renewToOrgType:
+          type: string
+        specialInterestTypeId:
+          type: integer
+        specialInterestType:
+          type: string
+        communityOrganizationName:
+          type: string
+          description: Chartering organization name
+        councilGuid:
+          type: string
+          format: uuid
+          description: Council unique identifier
+        councilName:
+          type: string
+          description: Council name (e.g., "Longhouse Council 373")
+        councilNumber:
+          type: string
+          description: Council number
+        saGuid:
+          type: string
+          format: uuid
+          nullable: true
+          description: Service area GUID (if applicable)
+        saName:
+          type: string
+          nullable: true
+        saNumber:
+          type: string
+          nullable: true
+        subCouncilGuid:
+          type: string
+          format: uuid
+          nullable: true
+        subCouncilName:
+          type: string
+          nullable: true
+        subCouncilNumber:
+          type: string
+          nullable: true
+        districtGuid:
+          type: string
+          format: uuid
+          description: District unique identifier
+        districtName:
+          type: string
+          description: District name
+        districtNumber:
+          type: string
+          description: District number
+        subDistrictGuid:
+          type: string
+          format: uuid
+          nullable: true
+        subDistrictName:
+          type: string
+          nullable: true
+        subDistrictNumber:
+          type: string
+          nullable: true
+        totalAmountDue:
+          type: number
+          format: double
+        totalAmountPaid:
+          type: number
+          format: double
+        nationalAmount:
+          type: number
+          format: double
+        councilAmount:
+          type: number
+          format: double
+        isPaid:
+          type: boolean
+        bsaOrderStatusId:
+          type: integer
+        bsaOrderStatusName:
+          type: string
+          description: "Status: Pending, InProgress, Completed"
+        isApproved:
+          type: boolean
+        approvedBy:
+          type: string
+        approvedDt:
+          type: string
+          format: date-time
+    RenewalDashboardResponse:
+      type: object
+      properties:
+        TotalUnits:
+          type: integer
+        AvailableForRenewal:
+          type: integer
+        RenewalsNotStarted:
+          type: integer
+        InProcessRenewals:
+          type: integer
+        Initiated:
+          type: integer
+    UnitActivitiesDashboardResponse:
+      type: object
+      properties:
+        CampOuts:
+          type: object
+          properties:
+            Campouts:
+              type: integer
+            CampoutsScoutParticipating:
+              type: integer
+            CampoutsTotalAttendance:
+              type: integer
+            NightsCamped:
+              type: integer
+    UnitAdvancementDashboardResponse:
+      type: object
+      properties:
+        DistrictName:
+          type: string
+        OrganizationName:
+          type: string
+        LionMTD:
+          type: integer
+        LionYTD:
+          type: integer
+        TigerMTD:
+          type: integer
+    UnitRenewalStatusDashboardResponse:
+      type: object
+      properties:
+        totalUnits:
+          type: integer
+        availableForRenewal:
+          type: integer
+        renewalsNotStarted:
+          type: integer
+        inProcessRenewals:
+          type: integer
+        initiated:
+          type: integer
+    RoundtableAttendanceResponse:
+      type: object
+      properties:
+        rtAttendanceJan:
+          type: integer
+        rtAttendanceFeb:
+          type: integer
+        rtAttendanceMar:
+          type: integer
+        rtAttendanceApr:
+          type: integer
+        rtAttendanceMay:
+          type: integer
+        rtAttendanceJun:
+          type: integer
+        rtAttendanceJul:
+          type: integer
+        rtAttendanceAug:
+          type: integer
+        rtAttendanceSep:
+          type: integer
+        rtAttendanceOct:
+          type: integer
+        rtAttendanceNov:
+          type: integer
+        rtAttendanceDec:
+          type: integer
+    YouthMembershipDashboardResponse:
+      type: object
+      properties:
+        unitsIncreasedMembershipOverLY:
+          type: integer
+        unitsIncreasedMembership3MonthsAgo:
+          type: integer
+        retained:
+          type: integer
+        retainedEligible:
+          type: integer
+        retentionPercentage:
+          type: number
+    StripeTokenResponse:
+      type: object
+      properties:
+        paymentMethodType:
+          type: string
+        last4:
+          type: string
+        bankName:
+          type: string
+          nullable: true
+        creditCardName:
+          type: string
+          nullable: true
+        payerName:
+          type: string
+    # ============================================
+    # Registration Response Schemas
+    # ============================================
+    UnitTypeRequirementsResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          membershipType:
+            type: string
+          minAge:
+            type: integer
+          maxAge:
+            type: integer
+          minGrade:
+            type: integer
+            nullable: true
+          maxGrade:
+            type: integer
+            nullable: true
+    RecharterValidationRequest:
+      type: object
+      description: Parameters for recharter validation
+      required:
+        - unitType
+      properties:
+        isCouncilPaid:
+          type: boolean
+          description: Whether council fees have been paid
+        unitType:
+          type: string
+          description: Type of unit being validated
+          enum:
+            - pack
+            - troop
+            - crew
+            - ship
+            - post
+        minimum2Youth:
+          type: boolean
+          description: Whether unit has minimum 2 youth members
+    RecharterValidationResponse:
+      type: array
+      description: List of validation results for recharter readiness
+      items:
+        type: object
+        properties:
+          validationId:
+            type: integer
+            description: Unique identifier for this validation rule
+          validationText:
+            type: string
+            description: Human-readable description of the validation
+            example: "Leaders do not have current Safeguarding Youth Training"
+          validationFlag:
+            type: boolean
+            description: Whether this validation has issues (true = has problems)
+          validationCategoryUnit:
+            type: string
+            description: Severity level for unit
+            enum:
+              - Error
+              - Warning
+              - Info
+          validationCategoryCouncil:
+            type: string
+            description: Severity level for council
+            enum:
+              - Error
+              - Warning
+              - Info
+          validationDetails:
+            type: array
+            description: List of members affected by this validation issue
+            items:
+              type: object
+              properties:
+                personId:
+                  type: integer
+                memberId:
+                  type: integer
+                firstName:
+                  type: string
+                middleName:
+                  type: string
+                lastName:
+                  type: string
+    BsaPaymentsResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          orderPaymentId:
+            type: integer
+          paymentId:
+            type: integer
+          paymentTypeLookupId:
+            type: integer
+          paymentMerchantLookupId:
+            type: integer
+          accountId:
+            type: string
+    # ============================================
+    # Lookup Response Schemas
+    # ============================================
+    SpecialInterestTypesResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: integer
+          name:
+            type: string
+          code:
+            type: string
+          isComingSoonUnit:
+            type: boolean
+  parameters:
+    version:
+      name: version
+      in: query
+      description: Filter by version year (e.g., 2016, 2024)
+      schema:
+        type: string
+    id:
+      name: id
+      in: query
+      description: Filter by specific ID
+      schema:
+        type: string
+    programId:
+      name: programId
+      in: query
+      description: Filter by program ID (1=Cub Scouts, 2=Scouts BSA, etc.)
+      schema:
+        type: string
+    status:
+      name: status
+      in: query
+      description: Filter by status (active, expired)
+      schema:
+        type: string
+    organizationGuid:
+      name: organizationGuid
+      in: path
+      required: true
+      description: Organization GUID (UUID format)
+      schema:
+        type: string
+        format: uuid
   securitySchemes:
     BearerAuth:
       type: http
