@@ -44,13 +44,23 @@ OPTS="--ignore-stdin"
 "$CMD" "$OPTS" "$OPTIC_PROXY"/advancements/ranks/1/requirements
 
 # advancements/youth
-## authorization failure
-"$CMD" "$OPTS" "$OPTIC_PROXY"/advancements/youth/123457890/
+# The two requests below previously carried a trailing slash. Optic matches
+# paths literally, so "/advancements/youth/123457890/" did not match the
+# documented "/advancements/youth/{userId}" template and both were reported as
+# "requests did not match a documented path" - which also meant the 401 case
+# was never checked against the spec. Verified 2026-08-27: the trailing slash
+# changes nothing server-side (401 unauthenticated, 404 authenticated, with or
+# without it), so dropping it costs no coverage and gains the 401 check.
 
-## not found
-"$CMD" "$OPTS" "${OPTIC_PROXY}/advancements/youth/${userId}/" "Authorization: Bearer ${TOKEN}"
+## authorization failure -> 401 Missing JWT Token
+"$CMD" "$OPTS" "${OPTIC_PROXY}/advancements/youth/123457890"
 
-## method not allowed
+## not found -> 404. Verified 2026-08-27: this endpoint returns 404 for EVERY
+## userId, including the signed-in user's own, so no request here elicits a
+## 200. The third request in this block was dropped: it was labelled "method
+## not allowed" but was byte-identical to this one and also returned 404. No
+## method (POST/PUT/DELETE/PATCH) produces a 405 on this path, so the 405
+## documented in openapi.yaml for it looks stale.
 "$CMD" "$OPTS" "${OPTIC_PROXY}/advancements/youth/${userId}" "Authorization: Bearer ${TOKEN}"
 
 ## leadership history
