@@ -19,7 +19,8 @@ npm run openapi-test
 npm run openapi-update
 
 # Set up authentication (required for authenticated endpoints).
-# Preferred: create .env (gitignored) from .env.example; the request script loads it itself.
+# Preferred: create .env (gitignored) from .env.example; the
+# request script loads it itself.
 cp .env.example .env && chmod 600 .env   # then fill in SCOUT_USERNAME / SCOUT_PASSWORD
 
 # Or export and source manually:
@@ -36,9 +37,11 @@ export YOUTH_USER_ID=<integer userId>
 
 - **api.scouting.org/openapi.yaml** - Main OpenAPI 3.0.3 specification
 - **api.scouting.org-command.sh** - Test request definitions using HTTPie syntax
-- **config.sh** - Authentication script. Logs in against `auth.scouting.org` (NOT `my.scouting.org`,
-  which now returns 503 for all `/api/*`) and exports `TOKEN`, `userId` and `personGuid`
-- **.env** - Gitignored credentials file (`SCOUT_USERNAME`, `SCOUT_PASSWORD`); template in `.env.example`
+- **config.sh** - Authentication script. Logs in against
+  `auth.scouting.org` (NOT `my.scouting.org`, which now returns 503 for
+  all `/api/*`) and exports `TOKEN`, `userId` and `personGuid`
+- **.env** - Gitignored credentials file (`SCOUT_USERNAME`,
+  `SCOUT_PASSWORD`); template in `.env.example`
 - **optic.yml** - Optic configuration for API traffic capture
 - **postman/** - Backup of Postman collection
 
@@ -53,8 +56,9 @@ export YOUTH_USER_ID=<integer userId>
 
 Runtime: Node.js, HTTPie 3.2.2+ (`http` command), curl, jq
 
-HTTPie must be 3.2.2 or newer; older builds (including Debian 12's `httpie` package) fail on startup
-against urllib3 2.x. Install with `pip install --user --upgrade httpie`.
+HTTPie must be 3.2.2 or newer; older builds (including Debian 12's
+`httpie` package) fail on startup against urllib3 2.x. Install with
+`pip install --user --upgrade httpie`.
 
 ## Identifiers
 
@@ -64,4 +68,5 @@ Three distinct, non-interchangeable identifiers appear in paths:
 - `userId` (integer) - `/advancements/youth/{userId}/*`
 - `sbUserId` / `userId` (integer) - `/advancements/v2/youth/{youthId}/*`
 
-Passing a GUID where an integer is expected returns `400 expected type: Integer, found: String`.
+Passing a GUID where an integer is expected returns
+`400 expected type: Integer, found: String`.

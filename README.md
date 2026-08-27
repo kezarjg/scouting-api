@@ -31,9 +31,11 @@ do. Install the dependencies.
 npm install
 ```
 
-The request script drives the API with [HTTPie](https://httpie.io/), so the `http` command must be on your `PATH`.
-Use **3.2.2 or newer** -- earlier releases (including the `httpie` package shipped by Debian 12) import
-`DEFAULT_CIPHERS` from urllib3, which was removed in urllib3 2.x, and fail on startup.
+The request script drives the API with [HTTPie](https://httpie.io/), so
+the `http` command must be on your `PATH`. Use **3.2.2 or newer** --
+earlier releases (including the `httpie` package shipped by Debian 12)
+import `DEFAULT_CIPHERS` from urllib3, which was removed in urllib3 2.x,
+and fail on startup.
 
 ```shell
 # check what you have
@@ -53,8 +55,9 @@ Some API calls require authentication or parameters, such as a user's ID to get 
 
 To set up authentication, provide your my.scouting.org credentials either way:
 
-**A `.env` file (recommended).** It persists across shells, and the request script picks it up on its own.
-`.env` is gitignored -- never commit it.
+**A `.env` file (recommended).** It persists across shells, and the
+request script picks it up on its own. `.env` is gitignored -- never
+commit it.
 
 ```shell
 cp .env.example .env
@@ -76,15 +79,17 @@ Either way, [config.sh](config.sh) sets these environment variables:
 - `userId`: integer user id, used by `/advancements/youth/{userId}/*`
 - `personGuid`: GUID, used by `/persons/{personGuid}/*` and the organization routes
 
-These are three distinct identifiers and are **not** interchangeable. A GUID passed where an integer id is
-expected returns `400 expected type: Integer, found: String`.
+These are three distinct identifiers and are **not** interchangeable. A
+GUID passed where an integer id is expected returns
+`400 expected type: Integer, found: String`.
 
 Some tests will fail if you do not set up authentication.
 
 ### Optional variables
 
-The unit roster requests are skipped unless you name a unit. Find your unit's `organizationGuid` in the
-response from `/persons/v2/{personGuid}/toolkits`.
+The unit roster requests are skipped unless you name a unit. Find your
+unit's `organizationGuid` in the response from
+`/persons/v2/{personGuid}/toolkits`.
 
 ```shell
 export ORG_GUID=<your-unit-organizationGuid>   # unit roster requests
