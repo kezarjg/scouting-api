@@ -7,9 +7,12 @@
     "openapi-update": "optic capture api.scouting.org/openapi.yaml --update interactive"
   },
   "dependencies": {
+    "@useoptic/optic": "^1.0.9",
     "csv-writer": "^1.6.0",
     "fs": "^0.0.1-security",
-    "optic": "^0.1.0",
     "path": "^0.12.7"
+  },
+  "overrides": {
+    "ajv": "8.17.1"
   }
 }
