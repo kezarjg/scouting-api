@@ -8,4 +8,4 @@ capture:
       url: https://api.scouting.org
     requests:
       run:
-        command: sh api.scouting.org-command.sh
+        command: bash api.scouting.org-command.sh

@@ -1216,7 +1216,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PersonProfile"
+                $ref: "#/components/schemas/PersonProfileResponse"
         "401":
           description: Unauthorized
           content:
@@ -1815,7 +1815,10 @@ paths:
       - name: youthId
         in: path
         required: true
-        description: Youth member ID
+        description: |
+          Scoutbook integer user id - the `sbUserId` from OrgMember or `userId` from
+          UnitRosterUser. NOT the BSA memberId and NOT a personGuid; passing a GUID
+          returns 400 "expected type: Integer, found: String".
         schema:
           type: integer
     get:
@@ -1833,6 +1836,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/YouthRanksResponse"
+        "400":
+          description: |
+            Invalid youthId - e.g. a personGuid was supplied where an integer is required.
+            Returns errorDesc: "Invalid value '<guid>' for uri parameter userId. expected type: Integer, found: String"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: Unauthorized
           content:
@@ -1850,7 +1861,10 @@ paths:
       - name: youthId
         in: path
         required: true
-        description: Youth member ID
+        description: |
+          Scoutbook integer user id - the `sbUserId` from OrgMember or `userId` from
+          UnitRosterUser. NOT the BSA memberId and NOT a personGuid; passing a GUID
+          returns 400 "expected type: Integer, found: String".
         schema:
           type: integer
       - name: rankId
@@ -1891,7 +1905,10 @@ paths:
       - name: youthId
         in: path
         required: true
-        description: Youth member ID
+        description: |
+          Scoutbook integer user id - the `sbUserId` from OrgMember or `userId` from
+          UnitRosterUser. NOT the BSA memberId and NOT a personGuid; passing a GUID
+          returns 400 "expected type: Integer, found: String".
         schema:
           type: integer
     get:
@@ -1926,7 +1943,10 @@ paths:
       - name: youthId
         in: path
         required: true
-        description: Youth member ID
+        description: |
+          Scoutbook integer user id - the `sbUserId` from OrgMember or `userId` from
+          UnitRosterUser. NOT the BSA memberId and NOT a personGuid; passing a GUID
+          returns 400 "expected type: Integer, found: String".
         schema:
           type: integer
     get:
@@ -2263,9 +2283,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/UnitMember"
+                $ref: "#/components/schemas/UnitRosterResponse"
         "401":
           description: Unauthorized
           content:
@@ -2301,9 +2319,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/UnitMember"
+                $ref: "#/components/schemas/UnitRosterResponse"
         "401":
           description: Unauthorized
           content:
@@ -2341,7 +2357,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/UnitMember"
+                  $ref: "#/components/schemas/UnitParentLink"
         "401":
           description: Unauthorized
           content:
@@ -2453,7 +2469,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SubscriptionsResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscription"
         "401":
           description: Unauthorized
           content:
@@ -2782,10 +2800,12 @@ components:
             type: string
           positionImageUrl200:
             type: string
+            nullable: true
           startDate:
             type: string
           endDate:
             type: string
+            nullable: true
           denId:
             type: number
             nullable: true
@@ -2794,16 +2814,22 @@ components:
             nullable: true
           patrolId:
             type: number
+            nullable: true
           patrol:
             type: string
+            nullable: true
           unitId:
             type: number
+            nullable: true
           unitLong:
             type: string
+            nullable: true
           charterOrgName:
             type: string
+            nullable: true
           unit:
             type: string
+            nullable: true
           districtId:
             type: number
             nullable: true
@@ -2842,6 +2868,7 @@ components:
             nullable: true
           notes:
             type: string
+            nullable: true
           defaultPosition:
             type: boolean
           available:
@@ -2906,6 +2933,8 @@ components:
         rankInformation:
           type: object
           properties:
+            rankId:
+              type: string
             name:
               type: string
             version:
@@ -3610,8 +3639,10 @@ components:
       type: object
       description: |
         Organization member details. Used for both adult and youth rosters.
-        Adult-specific fields (key3, positionTrained, yptStatus, etc.) are null for youth members.
-        Youth-specific fields (grade) are null for adult members.
+        Verified against live traffic 2026-08-27: adult-only fields (key3, positionTrained,
+        yptStatus, yptCompletedDate, yptExpiredDate) are ABSENT from youth records - not
+        present-and-null. Consumers must test for key presence, not for a null value.
+        `grade`/`gradeId` are present on youth records only.
       properties:
         personGuid:
           type: string
@@ -3620,6 +3651,11 @@ components:
         memberId:
           type: string
           description: BSA member ID
+        sbUserId:
+          type: integer
+          description: |
+            Scoutbook integer user id. Same value as UnitRosterUser.userId and the
+            identifier required by the /advancements/v2/youth/{youthId}/* endpoints.
         personFullName:
           type: string
         firstName:
@@ -3681,6 +3717,10 @@ components:
             - ACTIVE
             - EXPIRED
             - NEVER_TAKEN
+            - Expires 1-30d
+            - Expires 31-60d
+            - Expires 61-90d
+            - Never Taken
         yptCompletedDate:
           type: string
           format: date
@@ -4931,6 +4971,7 @@ components:
         effectiveDt:
           type: string
           format: date
+          nullable: true
         expiryDt:
           type: string
           format: date
@@ -5141,7 +5182,7 @@ components:
                 format: date
               trainedStatus:
                 type: string
-                enum: [Trained, Untrained, Partially Trained]
+                enum: [Trained, Untrained, Partially Trained, Not Trained]
               isPrimary:
                 type: boolean
               isKey3:
@@ -6223,49 +6264,299 @@ components:
               type: integer
             awardsEarnedThisYear:
               type: integer
-    UnitMember:
+    UnitRosterResponse:
       type: object
-      description: Member of a unit
+      description: |
+        Unit roster envelope returned by /organizations/v2/units/{organizationGuid}/adults
+        and /youths. Verified against live traffic 2026-08-27: the response is an OBJECT
+        carrying unit identity plus a `users` array - NOT a bare array of members.
+      properties:
+        id:
+          type: integer
+          description: Numeric unit id (distinct from organizationGuid)
+        number:
+          type: string
+        unitType:
+          type: string
+        unitTypeId:
+          type: integer
+        fullName:
+          type: string
+        charterName:
+          type: string
+        programType:
+          type: string
+        akelaOrganizationGuid:
+          type: string
+          format: uuid
+        organizationTypeId:
+          type: integer
+        councilAcceptGender:
+          type: string
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/UnitRosterUser"
+    UnitRosterUser:
+      type: object
+      description: |
+        Roster member as returned inside UnitRosterResponse.users. Richer than OrgMember:
+        carries address, contact, date of birth/age and rank summary inline, so a full
+        roster export does not require a per-person /persons/{personGuid}/profile call.
       properties:
         userId:
           type: integer
+          description: Integer user id. Required by /advancements/v2/youth/{youthId}/* endpoints.
+        memberId:
+          type: integer
+          description: BSA member ID. Returned as an integer here, but as a string in OrgMember.
         personGuid:
           type: string
           format: uuid
         firstName:
           type: string
-        lastName:
-          type: string
-        memberType:
-          type: string
-          enum:
-            - Youth
-            - Adult
-            - Parent
-        position:
+        middleName:
           type: string
           nullable: true
-        registrationStatus:
+        lastName:
           type: string
-    SubUnit:
-      type: object
-      description: Sub-unit (patrol or den)
-      properties:
-        subUnitGuid:
+        nameSuffix:
           type: string
-          format: uuid
-        name:
+          nullable: true
+        personFullName:
           type: string
-        type:
+        nickName:
           type: string
-          enum:
-            - Patrol
-            - Den
-        members:
+          nullable: true
+        dateOfBirth:
+          type: string
+        age:
+          type: integer
+        memberType:
+          type: string
+        gender:
+          type: string
+        grade:
+          type: integer
+          nullable: true
+        isAdult:
+          type: boolean
+        address1:
+          type: string
+          nullable: true
+        address2:
+          type: string
+          nullable: true
+        city:
+          type: string
+        state:
+          type: string
+        zip:
+          type: string
+        pictureUrl:
+          type: string
+        email:
+          type: string
+          nullable: true
+          description: Sparsely populated on youth records (1 of 44 in the verification sample).
+        homePhone:
+          type: string
+          nullable: true
+        mobilePhone:
+          type: string
+          nullable: true
+        workPhone:
+          type: string
+          nullable: true
+        bsaVerifiedDate:
+          type: string
+          nullable: true
+        lastRankApproved:
+          $ref: "#/components/schemas/RankSummary"
+        highestRanksApproved:
           type: array
           items:
-            type: integer
-          description: List of member user IDs
+            $ref: "#/components/schemas/RankSummary"
+        highestRanksAwarded:
+          type: array
+          items:
+            $ref: "#/components/schemas/RankSummary"
+        dateJoinedSeaScouts:
+          type: string
+          nullable: true
+        dateJoinedVenturing:
+          type: string
+          nullable: true
+        dateJoinedBoyScouts:
+          type: string
+          nullable: true
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/UnitUserPosition"
+    UnitUserPosition:
+      type: object
+      description: Position held by a member within the unit, including den/patrol assignment
+      properties:
+        id:
+          type: integer
+        positionId:
+          type: integer
+        position:
+          type: string
+        dateStarted:
+          type: string
+        isPending:
+          type: boolean
+        isKey3:
+          type: boolean
+          description: Present on adult position records.
+        patrolId:
+          type: integer
+          nullable: true
+        patrolName:
+          type: string
+          nullable: true
+        denId:
+          type: integer
+          nullable: true
+        denNumber:
+          type: string
+          nullable: true
+        denType:
+          type: string
+          nullable: true
+    RankSummary:
+      type: object
+      description: Rank record as embedded in UnitRosterUser
+      properties:
+        id:
+          type: integer
+        rank:
+          type: string
+        level:
+          type: integer
+        programId:
+          type: integer
+        program:
+          type: string
+        unitTypeId:
+          type: integer
+          nullable: true
+        unitType:
+          type: string
+          nullable: true
+        dateEarned:
+          type: string
+          nullable: true
+        leaderApprovedDate:
+          type: string
+          nullable: true
+        leaderApprovedUserId:
+          type: integer
+          nullable: true
+        awarded:
+          type: boolean
+        awardedDate:
+          type: string
+          nullable: true
+        awardedUserId:
+          type: integer
+          nullable: true
+    UnitParentLink:
+      type: object
+      description: |
+        Youth-to-parent association returned by /organizations/v2/units/{organizationGuid}/parents.
+        Verified 2026-08-27: this endpoint returns a JOIN TABLE, not a list of members. It is the
+        only documented way to resolve a youth's parent/guardian contact details.
+      properties:
+        youthUserId:
+          type: integer
+        parentUserId:
+          type: integer
+        parentInformation:
+          $ref: "#/components/schemas/ParentInformation"
+    ParentInformation:
+      type: object
+      description: Parent/guardian identity and contact details
+      properties:
+        memberId:
+          type: integer
+          nullable: true
+        personGuid:
+          type: string
+          format: uuid
+          nullable: true
+        firstName:
+          type: string
+        middleName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+        nickName:
+          type: string
+          nullable: true
+        nameSuffix:
+          type: string
+          nullable: true
+        personFullName:
+          type: string
+        dateOfBirth:
+          type: string
+          nullable: true
+        gender:
+          type: string
+        address1:
+          type: string
+          nullable: true
+        address2:
+          type: string
+          nullable: true
+        city:
+          type: string
+        state:
+          type: string
+        zip:
+          type: string
+        email:
+          type: string
+        homePhone:
+          type: string
+          nullable: true
+        mobilePhone:
+          type: string
+          nullable: true
+        workPhone:
+          type: string
+          nullable: true
+        bsaVerifiedDate:
+          type: string
+          nullable: true
+    SubUnit:
+      type: object
+      description: |
+        Sub-unit (den or patrol) as returned by /organizations/v2/units/{organizationGuid}/subUnits.
+        Verified against live traffic 2026-08-27.
+      properties:
+        subUnitId:
+          type: integer
+        subUnitName:
+          type: string
+        unitId:
+          type: integer
+        denType:
+          type: string
+        denTypeId:
+          type: integer
+        isApproved:
+          type: boolean
+        isForumEnabled:
+          type: boolean
+        showDlEvents:
+          type: boolean
+        dateCreated:
+          type: string
     MyScoutResponse:
       type: object
       description: Linked scouts for a parent
@@ -6291,28 +6582,51 @@ components:
           type: string
         relationship:
           type: string
-    SubscriptionsResponse:
+    Subscription:
       type: object
-      description: Person's subscription preferences
+      description: |
+        Communication-topic subscription row returned by /persons/{personGuid}/subscriptions.
+        Verified against live traffic 2026-08-27: the endpoint returns a bare ARRAY of these
+        rows (no envelope object), keyed by communication topic with an opt-out flag - it does
+        NOT expose a Scout Life magazine subscription flag. Observed topics include
+        "BSA Global", "Phone Text" and unit calendar/messaging.
       properties:
+        id:
+          type: integer
         personGuid:
           type: string
           format: uuid
-        subscriptions:
-          type: array
-          items:
-            $ref: "#/components/schemas/Subscription"
-    Subscription:
-      type: object
-      description: Individual subscription
-      properties:
-        subscriptionType:
+        firstName:
           type: string
-        enabled:
+        middleName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+        topicId:
+          type: integer
+        topic:
+          type: string
+        optOutFlag:
           type: boolean
-        lastUpdated:
+          description: True when the person has opted OUT of this topic.
+        effectiveDt:
           type: string
-          format: date-time
+        expiryDt:
+          type: string
+          nullable: true
+        createdDt:
+          type: string
+        createdBy:
+          type: string
+        lastModifiedDt:
+          type: string
+          nullable: true
+        lastModifiedBy:
+          type: string
+          nullable: true
+        isDelete:
+          type: boolean
     PersonProfileV2:
       type: object
       description: Person profile (v2 format)

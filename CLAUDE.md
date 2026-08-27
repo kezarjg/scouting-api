@@ -18,17 +18,30 @@ npm run openapi-test
 # Update spec with captured traffic (interactive mode)
 npm run openapi-update
 
-# Set up authentication (required for authenticated endpoints)
+# Set up authentication (required for authenticated endpoints).
+# Preferred: create .env (gitignored) from .env.example; the
+# request script loads it itself.
+cp .env.example .env && chmod 600 .env   # then fill in SCOUT_USERNAME / SCOUT_PASSWORD
+
+# Or export and source manually:
 export SCOUT_USERNAME=<username>
 export SCOUT_PASSWORD=<password>
 source config.sh
+
+# Optional, for the unit roster and per-youth requests:
+export ORG_GUID=<unit organizationGuid>
+export YOUTH_USER_ID=<integer userId>
 ```
 
 ## Architecture
 
 - **api.scouting.org/openapi.yaml** - Main OpenAPI 3.0.3 specification
 - **api.scouting.org-command.sh** - Test request definitions using HTTPie syntax
-- **config.sh** - Authentication script that fetches JWT token and sets `TOKEN` and `userId` env vars
+- **config.sh** - Authentication script. Logs in against
+  `auth.scouting.org` (NOT `my.scouting.org`, which now returns 503 for
+  all `/api/*`) and exports `TOKEN`, `userId` and `personGuid`
+- **.env** - Gitignored credentials file (`SCOUT_USERNAME`,
+  `SCOUT_PASSWORD`); template in `.env.example`
 - **optic.yml** - Optic configuration for API traffic capture
 - **postman/** - Backup of Postman collection
 
@@ -41,4 +54,19 @@ source config.sh
 
 ## Dependencies
 
-Runtime: Node.js, HTTPie (`http` command), curl, jq
+Runtime: Node.js, HTTPie 3.2.2+ (`http` command), curl, jq
+
+HTTPie must be 3.2.2 or newer; older builds (including Debian 12's
+`httpie` package) fail on startup against urllib3 2.x. Install with
+`pip install --user --upgrade httpie`.
+
+## Identifiers
+
+Three distinct, non-interchangeable identifiers appear in paths:
+
+- `personGuid` (GUID) - `/persons/{personGuid}/*`, `/organizations/*`
+- `userId` (integer) - `/advancements/youth/{userId}/*`
+- `sbUserId` / `userId` (integer) - `/advancements/v2/youth/{youthId}/*`
+
+Passing a GUID where an integer is expected returns
+`400 expected type: Integer, found: String`.

@@ -31,24 +31,70 @@ do. Install the dependencies.
 npm install
 ```
 
+The request script drives the API with [HTTPie](https://httpie.io/), so
+the `http` command must be on your `PATH`. Use **3.2.2 or newer** --
+earlier releases (including the `httpie` package shipped by Debian 12)
+import `DEFAULT_CIPHERS` from urllib3, which was removed in urllib3 2.x,
+and fail on startup.
+
+```shell
+# check what you have
+http --version
+
+# if it is missing or older than 3.2.2
+pip install --user --upgrade httpie
+```
+
+`jq` and `curl` are also required, by [config.sh](config.sh).
+
 ## Setup
 
 Some API calls require authentication or parameters, such as a user's ID to get a person's Leadership History
 `/advancements/youth/${userId}/leadershipPositionHistory`. These are configured as shell variables using the authentication script,
 [config.sh](config.sh).
 
-To set up authentication:
-1. Export your my.scouting.org credentials as environment variables and then source the script:
-   ```shell
-   export SCOUT_USERNAME=<username>
-   export SCOUT_PASSWORD=<password>
-   source config.sh
-   ```
-2. This will automatically set the required environment variables:
-   - `userId`: User ID of the person (automatically fetched)
-   - `TOKEN`: JWT token for authentication (automatically fetched)
+To set up authentication, provide your my.scouting.org credentials either way:
 
-Some tests will fail if you do not set up authentication using the config.sh script.
+**A `.env` file (recommended).** It persists across shells, and the
+request script picks it up on its own. `.env` is gitignored -- never
+commit it.
+
+```shell
+cp .env.example .env
+chmod 600 .env
+# then edit .env and fill in SCOUT_USERNAME and SCOUT_PASSWORD
+```
+
+**Or exported variables**, sourcing the script yourself:
+
+```shell
+export SCOUT_USERNAME=<username>
+export SCOUT_PASSWORD=<password>
+source config.sh
+```
+
+Either way, [config.sh](config.sh) sets these environment variables:
+
+- `TOKEN`: JWT bearer token
+- `userId`: integer user id, used by `/advancements/youth/{userId}/*`
+- `personGuid`: GUID, used by `/persons/{personGuid}/*` and the organization routes
+
+These are three distinct identifiers and are **not** interchangeable. A
+GUID passed where an integer id is expected returns
+`400 expected type: Integer, found: String`.
+
+Some tests will fail if you do not set up authentication.
+
+### Optional variables
+
+The unit roster requests are skipped unless you name a unit. Find your
+unit's `organizationGuid` in the response from
+`/persons/v2/{personGuid}/toolkits`.
+
+```shell
+export ORG_GUID=<your-unit-organizationGuid>   # unit roster requests
+export YOUTH_USER_ID=<integer userId>          # per-youth advancement requests
+```
 
 ## Usage
 
