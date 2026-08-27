@@ -1351,15 +1351,20 @@ paths:
       tags:
         - persons
       summary: Get or manage person memberships
-      description: Returns or manages membership information for a person
+      description: |
+        Returns or manages membership information for a person.
+
+        This path is POST/PUT only - GET returns 405 "HTTP Method get not
+        allowed". Verified 2026-08-27.
       operationId: postPersonMemberships
       security:
         - BearerAuth: []
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: "#/components/schemas/PersonMembershipsPostRequest"
       responses:
         "200":
           description: Successful operation
@@ -1367,6 +1372,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MembershipsResponse"
+        "400":
+          description: Missing required key in request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - persons
+      summary: Update a person membership
+      description: |
+        Undocumented until 2026-08-27. Discovered by method probing: PUT is
+        accepted where GET is 405.
+
+        Required keys were derived from the server's 400 validation response
+        to an empty body; no successful PUT was executed, because this is a
+        write endpoint against live membership records. Property types below
+        are inferred from naming and are UNVERIFIED.
+      operationId: putPersonMemberships
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonMembershipsPutRequest"
+      responses:
+        "200":
+          description: Successful operation
+        "400":
+          description: Missing required key in request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: Unauthorized
           content:
@@ -3574,30 +3621,50 @@ components:
                 type: integer
     OrgMembersFilterRequest:
       type: object
-      description: Filter criteria for organization members
+      description: |
+        Nominal filter criteria for organization members.
+
+        WARNING - verified against live traffic 2026-08-27: the server IGNORES
+        every field in `filterData`. Sending `{}`, `{"filterData":{}}`, or a
+        fully populated filter all return byte-identical responses (same md5),
+        and `lastName: "Gabello"` still returns all 15 adult rows. The enums
+        below describe what the my.scouting UI sends, NOT behaviour the API
+        implements.
+
+        A JSON body and `Content-Type: application/json` are still REQUIRED -
+        omitting the body returns 415, not 200. Send `{}` and filter the
+        `members` array client-side.
+
+        The response is also active-registrations-only: there is no documented
+        endpoint that returns expired or dropped adults. `positionStatus`
+        cannot be used to reach them.
       properties:
         filterData:
           type: object
+          description: |
+            Ignored by the server. Retained to document what the UI sends.
           properties:
             firstName:
               type: string
-              description: Filter by first name (partial match)
+              description: Ignored. Intended as a first-name partial match.
             lastName:
               type: string
-              description: Filter by last name (partial match)
+              description: Ignored. Intended as a last-name partial match.
             position:
               type: string
-              description: Filter by position name
+              description: Ignored. Intended as a position-name filter.
             positionStatus:
               type: string
-              description: Filter by position status
+              description: |
+                Ignored. active/inactive/all return identical payloads.
               enum:
                 - active
                 - inactive
                 - all
             registered:
               type: string
-              description: Filter by registration status
+              description: |
+                Ignored. all/registered/unregistered return identical payloads.
               enum:
                 - all
                 - registered
@@ -4032,9 +4099,15 @@ components:
             nullable: true
     RecharterValidationRequest:
       type: object
-      description: Parameters for recharter validation
+      description: |
+        Parameters for recharter validation.
+
+        Verified 2026-08-27: POST with `{}` returns 400 naming BOTH `unitType`
+        and `isCouncilPaid` as required keys. `isCouncilPaid` was previously
+        listed as optional here.
       required:
         - unitType
+        - isCouncilPaid
       properties:
         isCouncilPaid:
           type: boolean
@@ -5447,6 +5520,42 @@ components:
         organizationGuid:
           type: string
           format: uuid
+    PersonMembershipsPostRequest:
+      type: object
+      description: |
+        Request body for POST /persons/{personGuid}/memberships.
+
+        Verified 2026-08-27: posting `{}` returns 400 "required key [userName]
+        not found". Only `userName` is confirmed required; additional optional
+        properties may exist but were not probed.
+      required:
+        - userName
+      properties:
+        userName:
+          type: string
+          description: Login username of the person. Type inferred, UNVERIFIED.
+    PersonMembershipsPutRequest:
+      type: object
+      description: |
+        Request body for PUT /persons/{personGuid}/memberships.
+
+        Verified 2026-08-27: PUT `{}` returns 400 naming isPrimary, memberId
+        and userName as required keys. Property types are inferred from
+        naming and are UNVERIFIED - no successful PUT was executed.
+      required:
+        - isPrimary
+        - memberId
+        - userName
+      properties:
+        isPrimary:
+          type: boolean
+          description: Whether this is the person's primary membership.
+        memberId:
+          type: string
+          description: BSA member ID.
+        userName:
+          type: string
+          description: Login username of the person.
     MembershipsResponse:
       type: object
       description: Person memberships response
