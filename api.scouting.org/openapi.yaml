@@ -6458,6 +6458,7 @@ components:
           nullable: true
         city:
           type: string
+          nullable: true
         state:
           type: string
         zip:
@@ -6624,8 +6625,10 @@ components:
           nullable: true
         city:
           type: string
+          nullable: true
         state:
           type: string
+          nullable: true
         zip:
           type: string
         email:
@@ -6656,14 +6659,17 @@ components:
           type: integer
         denType:
           type: string
+          nullable: true
         denTypeId:
           type: integer
+          nullable: true
         isApproved:
           type: boolean
         isForumEnabled:
           type: boolean
         showDlEvents:
           type: boolean
+          nullable: true
         dateCreated:
           type: string
     MyScoutResponse:
